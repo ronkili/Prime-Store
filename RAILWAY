@@ -80,3 +80,25 @@ BUY USER FLOW:
 5. The ticket opens and shows both:
    - selected account type
    - free-text requirements
+
+
+ANTI LINK:
+- antiLinkEnabled: true
+- Blocks normal URLs.
+- Blocks Discord invite links.
+- Blocks GIF URLs from Tenor/Giphy and other URL embeds.
+- Staff/Admin bypass.
+- Requires Manage Messages.
+
+VERIFY:
+- Put Member role ID in memberRoleId.
+- Run /setup-verify inside the Verify channel.
+- Verify channel stays public and read-only.
+- All channels that were public become Member-only.
+- Existing private Staff/Admin channels stay private.
+- Verify button gives Member instantly, without numbers.
+
+Required:
+- Manage Channels
+- Manage Roles
+- Prime Store Bot role above Member.
