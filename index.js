@@ -54,6 +54,12 @@ const XP_FILE =
     "xp.json"
   );
 
+const STOCK_FILE =
+  path.join(
+    DATA_DIR,
+    "stock.json"
+  );
+
 function loadJson(file, fallback) {
   try {
     if (!fs.existsSync(file)) {
@@ -103,6 +109,46 @@ const xpData =
       guilds: {}
     }
   );
+
+const stockData =
+  loadJson(
+    STOCK_FILE,
+    {
+      discord: 0,
+      roblox: 0,
+      fortnite: 0
+    }
+  );
+
+function normalizeStockData() {
+  for (
+    const key
+    of [
+      "discord",
+      "roblox",
+      "fortnite"
+    ]
+  ) {
+    stockData[key] =
+      Math.max(
+        0,
+        Math.floor(
+          Number(
+            stockData[key] || 0
+          )
+        )
+      );
+  }
+}
+
+normalizeStockData();
+
+function saveStockData() {
+  saveJson(
+    STOCK_FILE,
+    stockData
+  );
+}
 
 const messageXpCooldowns =
   new Map();
@@ -575,6 +621,55 @@ function verifySetupResultEmbed(
 }
 
 // =====================
+// STOCK
+// =====================
+
+function stockPlatformInfo(
+  platform
+) {
+  const map = {
+    discord: {
+      emoji: "💬",
+      name: "Discord"
+    },
+
+    roblox: {
+      emoji: "🎮",
+      name: "Roblox"
+    },
+
+    fortnite: {
+      emoji: "🕹️",
+      name: "Fortnite"
+    }
+  };
+
+  return map[platform] || null;
+}
+
+function stockEmbed() {
+  return new EmbedBuilder()
+    .setColor("Gold")
+    .setTitle(
+      "📦 Prime Store • מלאי"
+    )
+    .setDescription(
+      [
+        `💬 **Discord:** ${stockData.discord}`,
+        `🎮 **Roblox:** ${stockData.roblox}`,
+        `🕹️ **Fortnite:** ${stockData.fortnite}`,
+        "",
+        "המספרים מתעדכנים על ידי צוות החנות."
+      ].join("\n")
+    )
+    .setFooter({
+      text:
+        "Prime Store • Stock"
+    })
+    .setTimestamp();
+}
+
+// =====================
 // TICKET HELPERS
 // =====================
 
@@ -983,6 +1078,9 @@ async function openTicket(
             productInfo
               ? `🛒 **סוג המשתמש:** ${productInfo.emoji} ${productInfo.name}`
               : `📝 ${info.description}`,
+            productInfo
+              ? `📦 **כמות במלאי כרגע:** ${stockData[options.product] ?? 0}`
+              : "",
             "",
             productInfo
               ? `📝 **מה חשוב שיהיה במשתמש:**\n${options.requirements}`
@@ -1559,6 +1657,16 @@ client.on(
     }
 
     if (
+      command === "stock"
+    ) {
+      return message.reply({
+        embeds: [
+          stockEmbed()
+        ]
+      });
+    }
+
+    if (
       command === "casino"
     ) {
       return message.reply({
@@ -2048,6 +2156,104 @@ client.on(
       ) {
         if (
           interaction.commandName ===
+          "stock"
+        ) {
+          return interaction.reply({
+            embeds: [
+              stockEmbed()
+            ]
+          });
+        }
+
+        if (
+          interaction.commandName ===
+          "stock-set"
+        ) {
+          if (
+            !isStaff(
+              interaction.member,
+              interaction.guild
+            )
+          ) {
+            return interaction.reply({
+              content:
+                "❌ רק Staff/Admin יכולים לעדכן את המלאי.",
+              flags:
+                MessageFlags.Ephemeral
+            });
+          }
+
+          const platform =
+            interaction.options
+              .getString(
+                "platform",
+                true
+              );
+
+          const amount =
+            interaction.options
+              .getInteger(
+                "amount",
+                true
+              );
+
+          const info =
+            stockPlatformInfo(
+              platform
+            );
+
+          if (!info) {
+            return interaction.reply({
+              content:
+                "❌ פלטפורמה לא תקינה.",
+              flags:
+                MessageFlags.Ephemeral
+            });
+          }
+
+          stockData[platform] =
+            Math.max(
+              0,
+              amount
+            );
+
+          saveStockData();
+
+          return interaction.reply({
+            embeds: [
+              new EmbedBuilder()
+                .setColor("Green")
+                .setTitle(
+                  "✅ המלאי עודכן"
+                )
+                .setDescription(
+                  `${info.emoji} **${info.name}: ${stockData[platform]} משתמשים במלאי**`
+                )
+                .addFields(
+                  {
+                    name:
+                      "📦 המלאי הנוכחי",
+                    value:
+                      [
+                        `💬 Discord: **${stockData.discord}**`,
+                        `🎮 Roblox: **${stockData.roblox}**`,
+                        `🕹️ Fortnite: **${stockData.fortnite}**`
+                      ].join("\n")
+                  }
+                )
+                .setFooter({
+                  text:
+                    `Updated by ${interaction.user.tag}`
+                })
+                .setTimestamp()
+            ],
+            flags:
+              MessageFlags.Ephemeral
+          });
+        }
+
+        if (
+          interaction.commandName ===
           "setup-verify"
         ) {
           if (
@@ -2370,7 +2576,13 @@ client.on(
                 "🛒 איזה משתמש תרצה לקנות?"
               )
               .setDescription(
-                "בחר את סוג המשתמש:"
+                [
+                  "בחר את סוג המשתמש:",
+                  "",
+                  `💬 Discord — **${stockData.discord} במלאי**`,
+                  `🎮 Roblox — **${stockData.roblox} במלאי**`,
+                  `🕹️ Fortnite — **${stockData.fortnite} במלאי**`
+                ].join("\n")
               )
           ],
 
