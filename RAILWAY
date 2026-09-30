@@ -102,3 +102,22 @@ Required:
 - Manage Channels
 - Manage Roles
 - Prime Store Bot role above Member.
+
+
+STOCK SYSTEM:
+Public:
+- /stock
+- !stock
+
+Staff/Admin:
+- /stock-set platform:<Discord/Roblox/Fortnite> amount:<number>
+
+Examples:
+- /stock-set platform:Fortnite amount:12
+- /stock-set platform:Roblox amount:5
+- /stock-set platform:Discord amount:8
+
+Stock data is saved at:
+/app/data/stock.json
+
+The Buy User questionnaire also displays the current stock before the user chooses a platform.
