@@ -213,6 +213,46 @@ function formatXp(value) {
 // ACCESS
 // =====================
 
+function hasBlockedLink(message) {
+  const text =
+    String(
+      message.content || ""
+    );
+
+  const linkRegex =
+    /(?:https?:\/\/|www\.|discord\.gg\/|discord(?:app)?\.com\/invite\/|tenor\.com\/|giphy\.com\/|media\.tenor\.com\/|cdn\.discordapp\.com\/|media\.discordapp\.net\/)/i;
+
+  if (linkRegex.test(text)) {
+    return true;
+  }
+
+  for (
+    const embed
+    of message.embeds || []
+  ) {
+    const values = [
+      embed.url,
+      embed.image?.url,
+      embed.thumbnail?.url,
+      embed.video?.url
+    ];
+
+    if (
+      values.some(
+        value =>
+          value &&
+          /https?:\/\//i.test(
+            String(value)
+          )
+      )
+    ) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 function isStaff(
   member,
   guild
@@ -236,6 +276,302 @@ function isStaff(
       )
     )
   );
+}
+
+// =====================
+// VERIFY
+// =====================
+
+function canEditChannelPermissions(
+  channel
+) {
+  return Boolean(
+    channel &&
+    !channel.isThread?.() &&
+    channel.permissionOverwrites &&
+    typeof channel.permissionOverwrites.edit ===
+      "function"
+  );
+}
+
+async function setupVerifyPermissions(
+  interaction
+) {
+  const guild =
+    interaction.guild;
+
+  const verifyChannel =
+    interaction.channel;
+
+  if (
+    !guild ||
+    !verifyChannel ||
+    !verifyChannel.isTextBased()
+  ) {
+    throw new Error(
+      "VERIFY_CHANNEL_INVALID"
+    );
+  }
+
+  if (!config.memberRoleId) {
+    throw new Error(
+      "MEMBER_ROLE_NOT_CONFIGURED"
+    );
+  }
+
+  const memberRole =
+    await guild.roles
+      .fetch(
+        config.memberRoleId
+      )
+      .catch(() => null);
+
+  if (!memberRole) {
+    throw new Error(
+      "MEMBER_ROLE_NOT_FOUND"
+    );
+  }
+
+  if (memberRole.managed) {
+    throw new Error(
+      "MEMBER_ROLE_MANAGED"
+    );
+  }
+
+  const botMember =
+    await guild.members
+      .fetchMe()
+      .catch(() => null);
+
+  if (!botMember) {
+    throw new Error(
+      "BOT_MEMBER_NOT_FOUND"
+    );
+  }
+
+  if (
+    !botMember.permissions.has(
+      PermissionFlagsBits.ManageChannels
+    )
+  ) {
+    throw new Error(
+      "BOT_MISSING_MANAGE_CHANNELS"
+    );
+  }
+
+  if (
+    !botMember.permissions.has(
+      PermissionFlagsBits.ManageRoles
+    )
+  ) {
+    throw new Error(
+      "BOT_MISSING_MANAGE_ROLES"
+    );
+  }
+
+  if (
+    memberRole.position >=
+    botMember.roles.highest.position
+  ) {
+    throw new Error(
+      "BOT_ROLE_TOO_LOW"
+    );
+  }
+
+  const everyoneRole =
+    guild.roles.everyone;
+
+  const channels =
+    await guild.channels.fetch();
+
+  const publicChannels =
+    [...channels.values()]
+      .filter(channel => {
+        if (
+          !canEditChannelPermissions(
+            channel
+          )
+        ) {
+          return false;
+        }
+
+        if (
+          channel.id ===
+          verifyChannel.id
+        ) {
+          return false;
+        }
+
+        const permissions =
+          channel.permissionsFor(
+            everyoneRole
+          );
+
+        return Boolean(
+          permissions?.has(
+            PermissionFlagsBits.ViewChannel
+          )
+        );
+      });
+
+  await verifyChannel
+    .permissionOverwrites
+    .edit(
+      everyoneRole,
+      {
+        ViewChannel: true,
+        SendMessages: false,
+        AddReactions: false,
+        CreatePublicThreads: false,
+        CreatePrivateThreads: false,
+        SendMessagesInThreads: false
+      },
+      {
+        reason:
+          "Prime Store automatic Verify setup"
+      }
+    );
+
+  let lockedChannels = 0;
+  let failedChannels = 0;
+
+  const ordered =
+    publicChannels.sort(
+      (a, b) => {
+        const aCategory =
+          a.type ===
+          ChannelType.GuildCategory
+            ? 0
+            : 1;
+
+        const bCategory =
+          b.type ===
+          ChannelType.GuildCategory
+            ? 0
+            : 1;
+
+        return (
+          aCategory -
+          bCategory
+        );
+      }
+    );
+
+  for (
+    const channel
+    of ordered
+  ) {
+    try {
+      await channel
+        .permissionOverwrites
+        .edit(
+          everyoneRole,
+          {
+            ViewChannel: false
+          },
+          {
+            reason:
+              "Prime Store automatic Member-only setup"
+          }
+        );
+
+      await channel
+        .permissionOverwrites
+        .edit(
+          memberRole,
+          {
+            ViewChannel: true
+          },
+          {
+            reason:
+              "Prime Store Member-only channel"
+          }
+        );
+
+      lockedChannels += 1;
+    } catch (error) {
+      failedChannels += 1;
+
+      console.error(
+        `❌ Verify setup failed for channel ${channel.id}:`,
+        error
+      );
+    }
+  }
+
+  return {
+    memberRole,
+    verifyChannel,
+    lockedChannels,
+    failedChannels
+  };
+}
+
+function verifyPanel() {
+  return {
+    embeds: [
+      new EmbedBuilder()
+        .setColor("Green")
+        .setTitle(
+          "✅ Prime Store • Verify"
+        )
+        .setDescription(
+          [
+            "ברוכים הבאים ל־**Prime Store**!",
+            "",
+            "לחצו על **Verify** כדי לקבל את רול ה־Member ולקבל גישה לשרת.",
+            "",
+            "לחיצה אחת וזהו — אין מספרים."
+          ].join("\n")
+        )
+        .setFooter({
+          text:
+            "Prime Store • Verification System"
+        })
+        .setTimestamp()
+    ],
+
+    components: [
+      new ActionRowBuilder()
+        .addComponents(
+          new ButtonBuilder()
+            .setCustomId(
+              "verify_member"
+            )
+            .setLabel("Verify")
+            .setEmoji("✅")
+            .setStyle(
+              ButtonStyle.Success
+            )
+        )
+    ]
+  };
+}
+
+function verifySetupResultEmbed(
+  result
+) {
+  return new EmbedBuilder()
+    .setColor(
+      result.failedChannels
+        ? "Orange"
+        : "Green"
+    )
+    .setTitle(
+      "✅ Verify Setup הושלם"
+    )
+    .setDescription(
+      [
+        `🔐 **${result.lockedChannels}** חדרים ציבוריים הפכו ל־Members בלבד.`,
+        `⚠️ **${result.failedChannels}** חדרים לא עודכנו.`,
+        "",
+        `✅ חדר ה־Verify נשאר פתוח: ${result.verifyChannel}`,
+        `👥 רול Member: ${result.memberRole}`,
+        "",
+        "חדרים שכבר היו פרטיים לפני ה־Setup נשארו פרטיים."
+      ].join("\n")
+    )
+    .setTimestamp();
 }
 
 // =====================
@@ -1084,6 +1420,37 @@ client.on(
       return;
     }
 
+    if (
+      config.antiLinkEnabled !== false &&
+      hasBlockedLink(message) &&
+      !isStaff(
+        message.member,
+        message.guild
+      )
+    ) {
+      await message.delete()
+        .catch(() => {});
+
+      const warning =
+        await message.channel.send({
+          content:
+            `🚫 ${message.author}, אסור לשלוח קישורים או קישורי GIF.`
+        })
+        .catch(() => null);
+
+      if (warning) {
+        setTimeout(
+          () => {
+            warning.delete()
+              .catch(() => {});
+          },
+          5000
+        );
+      }
+
+      return;
+    }
+
     const guildId =
       message.guild.id;
 
@@ -1681,6 +2048,109 @@ client.on(
       ) {
         if (
           interaction.commandName ===
+          "setup-verify"
+        ) {
+          if (
+            !isStaff(
+              interaction.member,
+              interaction.guild
+            )
+          ) {
+            return interaction.reply({
+              content:
+                "❌ אין לך גישה להריץ Setup Verify.",
+              flags:
+                MessageFlags.Ephemeral
+            });
+          }
+
+          await interaction.deferReply({
+            flags:
+              MessageFlags.Ephemeral
+          });
+
+          try {
+            const result =
+              await setupVerifyPermissions(
+                interaction
+              );
+
+            await interaction.channel.send(
+              verifyPanel()
+            );
+
+            return interaction.editReply({
+              embeds: [
+                verifySetupResultEmbed(
+                  result
+                )
+              ]
+            });
+          } catch (error) {
+            console.error(
+              "❌ setup-verify error:",
+              error
+            );
+
+            const errors = {
+              MEMBER_ROLE_NOT_CONFIGURED:
+                "❌ חסר `memberRoleId` ב־config.js.",
+              MEMBER_ROLE_NOT_FOUND:
+                "❌ רול Member לא נמצא.",
+              MEMBER_ROLE_MANAGED:
+                "❌ רול Member הוא Managed Role.",
+              BOT_MEMBER_NOT_FOUND:
+                "❌ לא הצלחתי לטעון את הבוט.",
+              BOT_MISSING_MANAGE_CHANNELS:
+                "❌ לבוט חסר `Manage Channels`.",
+              BOT_MISSING_MANAGE_ROLES:
+                "❌ לבוט חסר `Manage Roles`.",
+              BOT_ROLE_TOO_LOW:
+                "❌ רול Prime Store Bot חייב להיות מעל Member.",
+              VERIFY_CHANNEL_INVALID:
+                "❌ תריץ את הפקודה בתוך חדר Verify."
+            };
+
+            return interaction.editReply({
+              content:
+                errors[error.message] ||
+                "❌ הייתה שגיאה בזמן הגדרת Verify."
+            });
+          }
+        }
+
+        if (
+          interaction.commandName ===
+          "verify-panel"
+        ) {
+          if (
+            !isStaff(
+              interaction.member,
+              interaction.guild
+            )
+          ) {
+            return interaction.reply({
+              content:
+                "❌ אין לך גישה.",
+              flags:
+                MessageFlags.Ephemeral
+            });
+          }
+
+          await interaction.channel.send(
+            verifyPanel()
+          );
+
+          return interaction.reply({
+            content:
+              "✅ פאנל ה־Verify נשלח.",
+            flags:
+              MessageFlags.Ephemeral
+          });
+        }
+
+        if (
+          interaction.commandName ===
           "ticket-panel"
         ) {
           if (
@@ -1708,6 +2178,96 @@ client.on(
               MessageFlags.Ephemeral
           });
         }
+      }
+
+      // ---------- VERIFY ----------
+
+      if (
+        interaction.isButton() &&
+        interaction.customId ===
+          "verify_member"
+      ) {
+        if (!config.memberRoleId) {
+          return interaction.reply({
+            content:
+              "❌ חסר `memberRoleId` ב־config.js.",
+            flags:
+              MessageFlags.Ephemeral
+          });
+        }
+
+        const member =
+          await interaction.guild.members
+            .fetch(
+              interaction.user.id
+            )
+            .catch(() => null);
+
+        const role =
+          await interaction.guild.roles
+            .fetch(
+              config.memberRoleId
+            )
+            .catch(() => null);
+
+        const botMember =
+          await interaction.guild.members
+            .fetchMe()
+            .catch(() => null);
+
+        if (
+          !member ||
+          !role ||
+          !botMember
+        ) {
+          return interaction.reply({
+            content:
+              "❌ לא הצלחתי לטעון את נתוני ה־Verify.",
+            flags:
+              MessageFlags.Ephemeral
+          });
+        }
+
+        if (
+          member.roles.cache.has(
+            role.id
+          )
+        ) {
+          return interaction.reply({
+            content:
+              "✅ אתה כבר מאומת.",
+            flags:
+              MessageFlags.Ephemeral
+          });
+        }
+
+        if (
+          role.managed ||
+          !botMember.permissions.has(
+            PermissionFlagsBits.ManageRoles
+          ) ||
+          role.position >=
+            botMember.roles.highest.position
+        ) {
+          return interaction.reply({
+            content:
+              "❌ ודא שלבוט יש `Manage Roles` ושהרול שלו מעל Member.",
+            flags:
+              MessageFlags.Ephemeral
+          });
+        }
+
+        await member.roles.add(
+          role,
+          "Prime Store Verify"
+        );
+
+        return interaction.reply({
+          content:
+            "✅ אומתת בהצלחה! קיבלת גישה לשרת.",
+          flags:
+            MessageFlags.Ephemeral
+        });
       }
 
       // ---------- BLACKJACK ----------
