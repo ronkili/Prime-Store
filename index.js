@@ -762,6 +762,39 @@ function buildTicketTopic({
   ].join(";");
 }
 
+function ticketStatusEmbed(
+  messageEmbed,
+  claimedBy = ""
+) {
+  const base =
+    EmbedBuilder.from(
+      messageEmbed
+    );
+
+  const fields =
+    Array.isArray(base.data.fields)
+      ? base.data.fields.filter(
+          field =>
+            field.name !==
+              "🛡️ מטפל בטיקט"
+        )
+      : [];
+
+  if (claimedBy) {
+    fields.push({
+      name:
+        "🛡️ מטפל בטיקט",
+      value:
+        `<@${claimedBy}>`,
+      inline: false
+    });
+  }
+
+  base.setFields(fields);
+
+  return base;
+}
+
 function ticketControls(
   claimedBy = ""
 ) {
@@ -2764,14 +2797,31 @@ client.on(
             })
           );
 
-        return interaction.update({
-          embeds:
-            interaction.message.embeds,
+        await interaction.update({
+          embeds: [
+            ticketStatusEmbed(
+              interaction.message.embeds[0],
+              interaction.user.id
+            )
+          ],
           components:
             ticketControls(
               interaction.user.id
             )
         });
+
+        await interaction.channel.send({
+          embeds: [
+            new EmbedBuilder()
+              .setColor("Green")
+              .setDescription(
+                `🛡️ הטיקט נלקח על ידי ${interaction.user}.`
+              )
+              .setTimestamp()
+          ]
+        });
+
+        return;
       }
 
       // ---------- RELEASE ----------
@@ -2831,12 +2881,29 @@ client.on(
             })
           );
 
-        return interaction.update({
-          embeds:
-            interaction.message.embeds,
+        await interaction.update({
+          embeds: [
+            ticketStatusEmbed(
+              interaction.message.embeds[0],
+              ""
+            )
+          ],
           components:
             ticketControls()
         });
+
+        await interaction.channel.send({
+          embeds: [
+            new EmbedBuilder()
+              .setColor("Orange")
+              .setDescription(
+                `🔓 ${interaction.user} שחרר את הטיקט. הטיקט זמין שוב לצוות.`
+              )
+              .setTimestamp()
+          ]
+        });
+
+        return;
       }
 
       // ---------- ADD USER ----------
