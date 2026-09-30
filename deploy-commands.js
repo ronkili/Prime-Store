@@ -10,6 +10,52 @@ const config = require("./config");
 
 const commands = [
   new SlashCommandBuilder()
+    .setName("stock")
+    .setDescription(
+      "מציג את המלאי הנוכחי של Prime Store"
+    ),
+
+  new SlashCommandBuilder()
+    .setName("stock-set")
+    .setDescription(
+      "מעדכן את המלאי של Prime Store"
+    )
+    .addStringOption(
+      option =>
+        option
+          .setName("platform")
+          .setDescription(
+            "איזה מלאי לעדכן"
+          )
+          .setRequired(true)
+          .addChoices(
+            {
+              name: "Discord",
+              value: "discord"
+            },
+            {
+              name: "Roblox",
+              value: "roblox"
+            },
+            {
+              name: "Fortnite",
+              value: "fortnite"
+            }
+          )
+    )
+    .addIntegerOption(
+      option =>
+        option
+          .setName("amount")
+          .setDescription(
+            "כמה משתמשים יש במלאי"
+          )
+          .setRequired(true)
+          .setMinValue(0)
+          .setMaxValue(1000000)
+    ),
+
+  new SlashCommandBuilder()
     .setName("setup-verify")
     .setDescription(
       "מגדיר Verify וסוגר את החדרים הציבוריים ל־Members"
