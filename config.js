@@ -35,11 +35,11 @@ module.exports = {
   // =====================
 
   ticketCategoryId:
-    "PUT_TICKET_CATEGORY_ID_HERE",
+    "1554776041514344489",
 
   ticketStaffRoleId:
-    "PUT_TICKET_STAFF_ROLE_ID_HERE",
+    "1554776130668470332",
 
   ticketLogsChannelId:
-    "PUT_TICKET_LOGS_CHANNEL_ID_HERE"
+    "1554776020777836605"
 };
