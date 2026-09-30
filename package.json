@@ -1,7 +1,7 @@
 {
   "name": "prime-store-bot",
-  "version": "1.2.0",
-  "description": "Prime Store Discord bot - tickets, purchase questionnaire, virtual XP casino, anti-link and automatic verification",
+  "version": "1.3.0",
+  "description": "Prime Store Discord bot - tickets, purchase questionnaire, stock system, virtual XP casino, anti-link and automatic verification",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
