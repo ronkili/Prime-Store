@@ -1,0 +1,82 @@
+PRIME STORE BOT — RAILWAY
+
+FILES:
+- index.js
+- deploy-commands.js
+- config.js
+- package.json
+
+VARIABLE:
+TOKEN=your_bot_token
+
+VOLUME:
+Mount Path: /app/data
+
+START COMMAND:
+npm run deploy && npm start
+
+DISCORD DEVELOPER PORTAL:
+Enable:
+- SERVER MEMBERS INTENT
+- MESSAGE CONTENT INTENT
+
+BOT PERMISSIONS:
+- View Channels
+- Send Messages
+- Embed Links
+- Attach Files
+- Read Message History
+- Manage Channels
+- Manage Messages
+
+TICKET PANEL:
+/ticket-panel
+
+TICKET TYPES:
+🛒 קניית משתמש
+❓ שאלה
+⚠️ דיווח על סקאם
+❗ עזרה
+
+TICKET CONTROLS:
+Claim
+Release
+Add User
+Remove User
+Close
+Transcript
+
+CASINO:
+Virtual XP only.
+No real money and no cashout.
+
+COMMANDS:
+!xp
+!balance
+!daily
+!coinflip <xp> <heads/tails>
+!dice <xp> <1-6>
+!slots <xp>
+!roulette <xp> <red/black/green>
+!blackjack <xp>
+!bj <xp>
+!leaderboard
+!lb
+!casino
+
+XP FILE:
+/app/data/xp.json
+
+
+BUY USER FLOW:
+1. User clicks קניית משתמש.
+2. User chooses:
+   - Discord
+   - Roblox
+   - Fortnite
+3. A form opens with ONE free-text field:
+   "מה חשוב לך שיהיה במשתמש?"
+4. The user writes the requirements freely.
+5. The ticket opens and shows both:
+   - selected account type
+   - free-text requirements
