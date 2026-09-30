@@ -10,6 +10,18 @@ const config = require("./config");
 
 const commands = [
   new SlashCommandBuilder()
+    .setName("setup-verify")
+    .setDescription(
+      "מגדיר Verify וסוגר את החדרים הציבוריים ל־Members"
+    ),
+
+  new SlashCommandBuilder()
+    .setName("verify-panel")
+    .setDescription(
+      "שולח את פאנל ה־Verify"
+    ),
+
+  new SlashCommandBuilder()
     .setName("ticket-panel")
     .setDescription(
       "שולח את פאנל הטיקטים של Prime Store"
