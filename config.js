@@ -10,6 +10,19 @@ module.exports = {
     "1554772193953714196",
 
   // =====================
+  // VERIFY
+  // =====================
+
+  memberRoleId:
+    "1554779020837527562",
+
+  // =====================
+  // ANTI LINK
+  // =====================
+
+  antiLinkEnabled: true,
+
+  // =====================
   // XP + CASINO
   // Virtual XP only — no real money / no purchases / no cashout.
   // =====================
