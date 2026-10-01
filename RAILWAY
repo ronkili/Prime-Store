@@ -121,3 +121,21 @@ Stock data is saved at:
 /app/data/stock.json
 
 The Buy User questionnaire also displays the current stock before the user chooses a platform.
+
+
+TICKET CLAIM DISPLAY:
+- When Staff clicks Claim, the main ticket embed shows:
+  "🛡️ מטפל בטיקט: @Staff"
+- A visible message is also sent:
+  "הטיקט נלקח על ידי @Staff"
+- When Release is used, the Staff field is removed and the ticket becomes available again.
+
+
+ANTI-SPAM:
+- 6 or more mentions in ONE message:
+  deletes the whole message + 1 hour Discord Timeout.
+- 6 or more links in ONE message:
+  deletes the whole message + 1 hour Discord Timeout.
+- Staff/Admin bypass.
+- Requires Manage Messages and Moderate Members.
+- Bot role must be above users it needs to timeout.
