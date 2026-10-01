@@ -259,6 +259,57 @@ function formatXp(value) {
 // ACCESS
 // =====================
 
+function countMentionsInMessage(message) {
+  const text = String(message.content || "");
+  const mentionTokens =
+    text.match(/<@!?\d{17,20}>|<@&\d{17,20}>|@everyone|@here/gi) || [];
+  return mentionTokens.length;
+}
+
+function countLinksInMessage(message) {
+  const text = String(message.content || "");
+  const links =
+    text.match(/(?:https?:\/\/[^\s<]+|www\.[^\s<]+|discord\.gg\/[^\s<]+|discord(?:app)?\.com\/invite\/[^\s<]+)/gi) || [];
+  return links.length;
+}
+
+async function applyOneHourSpamTimeout(message, reason, detectedCount, type) {
+  const member = message.member;
+  if (!member) return;
+
+  await message.delete().catch(() => {});
+
+  let timedOut = false;
+
+  if (
+    member.moderatable &&
+    !member.permissions.has(PermissionFlagsBits.Administrator)
+  ) {
+    await member.timeout(
+      60 * 60 * 1000,
+      reason
+    ).then(() => {
+      timedOut = true;
+    }).catch(error => {
+      console.error("❌ Failed to timeout spammer:", error);
+    });
+  }
+
+  const label = type === "mentions" ? "תיוגים" : "קישורים";
+
+  const notice = await message.channel.send({
+    content: timedOut
+      ? `🚫 ${message.author} שלח **${detectedCount} ${label}** בהודעה אחת וקיבל **Timeout לשעה**.`
+      : `🚫 ${message.author} שלח **${detectedCount} ${label}**. ההודעה נמחקה, אבל הבוט לא הצליח לתת Timeout. בדוק הרשאת **Moderate Members** וסדר רולים.`
+  }).catch(() => null);
+
+  if (notice) {
+    setTimeout(() => {
+      notice.delete().catch(() => {});
+    }, 7000);
+  }
+}
+
 function hasBlockedLink(message) {
   const text =
     String(
@@ -1549,6 +1600,51 @@ client.on(
       message.author.bot
     ) {
       return;
+    }
+
+    if (
+      !isStaff(
+        message.member,
+        message.guild
+      )
+    ) {
+      const mentionCount =
+        countMentionsInMessage(message);
+
+      if (
+        config.antiMentionSpamEnabled !== false &&
+        mentionCount >
+          Number(
+            config.maxMentionsPerMessage || 5
+          )
+      ) {
+        await applyOneHourSpamTimeout(
+          message,
+          "Prime Store Anti-Spam: more than 5 mentions",
+          mentionCount,
+          "mentions"
+        );
+        return;
+      }
+
+      const linkCount =
+        countLinksInMessage(message);
+
+      if (
+        config.antiLinkSpamEnabled !== false &&
+        linkCount >
+          Number(
+            config.maxLinksPerMessage || 5
+          )
+      ) {
+        await applyOneHourSpamTimeout(
+          message,
+          "Prime Store Anti-Spam: more than 5 links",
+          linkCount,
+          "links"
+        );
+        return;
+      }
     }
 
     if (
