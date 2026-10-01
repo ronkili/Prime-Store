@@ -23,6 +23,18 @@ module.exports = {
   antiLinkEnabled: true,
 
   // =====================
+  // ANTI SPAM
+  // =====================
+
+  // יותר מ־5 תיוגים בהודעה אחת = מחיקה + Timeout לשעה
+  antiMentionSpamEnabled: true,
+  maxMentionsPerMessage: 5,
+
+  // יותר מ־5 קישורים בהודעה אחת = מחיקה + Timeout לשעה
+  antiLinkSpamEnabled: true,
+  maxLinksPerMessage: 5,
+
+  // =====================
   // XP + CASINO
   // Virtual XP only — no real money / no purchases / no cashout.
   // =====================
